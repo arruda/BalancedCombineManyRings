@@ -5,6 +5,7 @@ using StardewModdingAPI.Events;
 using StardewModdingAPI.Utilities;
 using StardewValley;
 using StardewValley.Objects;
+using StardewValley.Menus;
 using Harmony;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
@@ -40,6 +41,10 @@ namespace CombineManyRings
             harmony.Patch(
                 original: AccessTools.Method(typeof(CombinedRing), nameof(CombinedRing.drawInMenu), new Type[] {typeof(SpriteBatch), typeof(Vector2), typeof(float), typeof(float), typeof(float), typeof(StackDrawType), typeof(Color), typeof(bool)}),
                 prefix: new HarmonyMethod(typeof(ModEntry), nameof(ModEntry.DrawInMenu_Prefix))
+            );
+            harmony.Patch(
+                original: AccessTools.Method(typeof(ForgeMenu), nameof(ForgeMenu.GetForgeCost)),
+                postfix: new HarmonyMethod(typeof(ModEntry), nameof(ModEntry.GetForgeCost_Postfix))
             );
         }
         public static int GetCombinedRingTotal(Ring ring)
@@ -172,6 +177,32 @@ namespace CombineManyRings
                 ModMonitor.Log($"Failed in {nameof(DrawInMenu_Prefix)}:\n{ex}", LogLevel.Error);
                 return true; // run original logic
             }
+        }
+
+        //public virtual int GetForgeCost (Item left_item, Item right_item);
+        public static void GetForgeCost_Postfix(ForgeMenu __instance, Item left_item, Item right_item, ref int __result)
+        {
+            if (left_item != null && right_item != null)
+            {
+                // if merging rings, then calculate different cost based on the total amount of rings being combined
+                // if only two, rings, than keep normal cost of 20, otherwise, gets 100 per ring combined (max of 999)
+                if (left_item.getCategoryName().Equals("Ring") && left_item.category == right_item.category)
+                {
+                    Ring left_ring = (Ring)left_item;
+                    Ring right_ring = (Ring)right_item;
+
+                    int total_rings = GetCombinedRingTotal(left_ring) + GetCombinedRingTotal(right_ring);
+                    if (total_rings > 2)
+                    {
+                        int new_cost = Math.Min(total_rings * 100, 999);
+                        __result = new_cost;
+
+                    }
+
+                }
+
+            }
+
         }
     }
 }
