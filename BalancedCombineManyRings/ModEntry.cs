@@ -10,7 +10,7 @@ using Harmony;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
 
-namespace CombineManyRings
+namespace BalancedCombineManyRings
 {
     /// <summary>The mod entry point.</summary>
     public class ModEntry : Mod
@@ -28,7 +28,7 @@ namespace CombineManyRings
 
         private void OnGameLaunched(object sender, EventArgs e)
         {
-            var harmony = HarmonyInstance.Create("Stari.CombineManyRings");
+            var harmony = HarmonyInstance.Create("Arruda.BalancedCombineManyRings");
 
             harmony.Patch(
                 original: AccessTools.Method(typeof(Ring), nameof(Ring.CanCombine)),
@@ -204,5 +204,13 @@ namespace CombineManyRings
             }
 
         }
+
+        //public bool IsValidCraft(Item left_item, Item right_item);
+
+        //public Item CraftItem(Item left_item, Item right_item, bool forReal = false);
+
+        //public void SpendRightItem();
+
+        //public void SpendLeftItem();
     }
 }

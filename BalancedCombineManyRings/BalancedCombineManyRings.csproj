@@ -7,8 +7,8 @@
     <ProjectGuid>{25595BA5-3D3D-4796-9F59-3BD59B6896AA}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>CombineManyRings</RootNamespace>
-    <AssemblyName>CombineManyRings</AssemblyName>
+    <RootNamespace>BalancedCombineManyRings</RootNamespace>
+    <AssemblyName>BalancedCombineManyRings</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
