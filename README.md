@@ -1,5 +1,5 @@
-# CombineManyRings
+# BalancedCombineManyRings
+This mod is based on the [CombineManyRings](https://github.com/SlivaStari/CombineManyRings) mods which allows you to put multiple rings together in the [Forge](https://stardewvalleywiki.com/Forge#Combined_Rings), but uses a more balanced and challenging system for creating combined rings with more than two base rings.
 
-A simple mod to allow to [Forge](https://stardewvalleywiki.com/Forge#Combined_Rings) multiple rings together instead of just two.
-
-Should work with [WearMoreRings](https://github.com/bcmpinc/StardewHack/tree/master/WearMoreRings).
+# License
+This Mod follows on the MIT licence as can be seen in the `LICENSE` file listed in with this mod source code.
