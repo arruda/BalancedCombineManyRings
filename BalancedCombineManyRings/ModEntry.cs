@@ -46,6 +46,17 @@ namespace BalancedCombineManyRings
                 original: AccessTools.Method(typeof(ForgeMenu), nameof(ForgeMenu.GetForgeCost)),
                 postfix: new HarmonyMethod(typeof(ModEntry), nameof(ModEntry.GetForgeCost_Postfix))
             );
+
+            //public Item CraftItem(Item left_item, Item right_item, bool forReal = false);
+            harmony.Patch(
+                original: AccessTools.Method(typeof(ForgeMenu), nameof(ForgeMenu.CraftItem)),
+                prefix: new HarmonyMethod(typeof(ModEntry), nameof(ModEntry.CraftItem_Prefix))
+            );
+            harmony.Patch(
+                original: AccessTools.Method(typeof(ForgeMenu), "_UpdateDescriptionText"),
+                postfix: new HarmonyMethod(typeof(ModEntry), nameof(ModEntry._UpdateDescriptionText_Postfix))
+            );
+
         }
         public static int GetCombinedRingTotal(Ring ring)
         {
@@ -194,7 +205,7 @@ namespace BalancedCombineManyRings
                     int total_rings = GetCombinedRingTotal(left_ring) + GetCombinedRingTotal(right_ring);
                     if (total_rings > 2)
                     {
-                        int new_cost = Math.Min(total_rings * 100, 999);
+                        int new_cost = GetTotalCombinedRingsCost(total_rings);
                         __result = new_cost;
 
                     }
@@ -205,12 +216,107 @@ namespace BalancedCombineManyRings
 
         }
 
-        //public bool IsValidCraft(Item left_item, Item right_item);
+        public static bool CraftItem_Prefix(ForgeMenu __instance, string  ___displayedDescription, Item left_item, Item right_item, ref Item __result,  bool forReal = false)
+        {
+            if (left_item != null && right_item != null)
+            {
 
-        //public Item CraftItem(Item left_item, Item right_item, bool forReal = false);
+                if (left_item.getCategoryName().Equals("Ring") && left_item.category == right_item.category)
+                {
+                    Ring left_ring = (Ring)left_item;
+                    Ring right_ring = (Ring)right_item;
 
-        //public void SpendRightItem();
+                    int total_left_rings = GetCombinedRingTotal(left_ring);
+                    int total_right_rings = GetCombinedRingTotal(right_ring);
+                    int total_rings = total_left_rings + total_right_rings;
+                    if (forReal == true)
+                    {
+                        int breakChance = GetBreakChance(total_rings);
+                        Random r = new Random();
+                        int instabilityForgeRoll = r.Next(0, 100);
+                        if (instabilityForgeRoll < breakChance)
+                        {
+                            ModMonitor.Log($"Was instable ({instabilityForgeRoll} of {breakChance}). Will only keep one ring", LogLevel.Trace);
+                            int brokenRingRoll = r.Next(0, total_rings);
+                            __result = right_item;
 
-        //public void SpendLeftItem();
+                            if (total_left_rings >= total_right_rings && brokenRingRoll >= total_left_rings)
+                            {
+                                __result = left_item;
+                            }
+                            else if (total_left_rings < total_right_rings && brokenRingRoll < total_right_rings)
+                            {
+                                __result = left_item;
+                            }
+                            else
+                            {
+
+                                ModMonitor.Log($"keeping the right one", LogLevel.Trace);
+                            }
+                            ModMonitor.Log($"brokenRingRoll: {brokenRingRoll}, {total_left_rings}, {total_right_rings}", LogLevel.Trace);
+                            Game1.playSound("rockGolemDie");
+
+                            return false;
+                        }
+                        else
+                        {
+                            ModMonitor.Log($"Successfull {instabilityForgeRoll} of {breakChance}! will forge as it should.", LogLevel.Trace);
+                        }
+                    }
+
+                }
+            }
+
+            ModMonitor.Log($"running original...", LogLevel.Trace);
+            return true;
+        }
+
+
+        public static int GetBreakChance(int total_rings)
+        {
+            return Math.Min((total_rings - 2) * 20, 90);  // 0 - 90
+        }
+
+        public static int GetTotalCombinedRingsCost(int total_rings)
+        {
+            return Math.Min((total_rings - 2) * 100, 999);
+        }
+
+        public static void _UpdateDescriptionText_Postfix(ForgeMenu __instance, ref string ___displayedDescription)
+        {
+
+            if (__instance.inventory != null && __instance.leftIngredientSpot != null && __instance.rightIngredientSpot != null)
+            {
+                Item left_item = __instance.leftIngredientSpot.item;
+                Item right_item = __instance.rightIngredientSpot.item;
+
+
+
+                if (left_item != null && right_item != null)
+                {
+
+                    if (left_item.getCategoryName().Equals("Ring") && left_item.category == right_item.category)
+                    {
+                        Ring left_ring = (Ring)left_item;
+                        Ring right_ring = (Ring)right_item;
+
+                        int total_left_rings = GetCombinedRingTotal(left_ring);
+                        int total_right_rings = GetCombinedRingTotal(right_ring);
+                        int total_rings = total_left_rings + total_right_rings;
+                        int cost = GetTotalCombinedRingsCost(total_rings);
+                        if (total_rings > 2)
+                        {
+                            ___displayedDescription += $"\nCost: {cost}";
+                        }
+                        int sucess_rate=  100 - GetBreakChance(total_rings);  
+                        ___displayedDescription += $"\nChance of sucess: {sucess_rate}%";
+
+                    }
+                }
+
+
+            }
+
+        }
     }
 }
