@@ -18,8 +18,13 @@ namespace BalancedCombineManyRings
         internal static IMonitor ModMonitor { get; set; }
         internal new static IModHelper Helper { get; set; }
 
+        internal static DataLoader DataLoader;
+        //private ModConfig Config;
+
         public override void Entry(IModHelper helper)
         {
+
+            //this.Config = helper.ReadConfig<ModConfig>();
             ModMonitor = Monitor;
             Helper = helper;
 
@@ -30,6 +35,7 @@ namespace BalancedCombineManyRings
         {
             var harmony = HarmonyInstance.Create("Arruda.BalancedCombineManyRings");
 
+            DataLoader = new DataLoader(Helper);
             harmony.Patch(
                 original: AccessTools.Method(typeof(Ring), nameof(Ring.CanCombine)),
                 prefix: new HarmonyMethod(typeof(ModEntry), nameof(ModEntry.CanCombine_Prefix))
@@ -51,6 +57,11 @@ namespace BalancedCombineManyRings
             harmony.Patch(
                 original: AccessTools.Method(typeof(ForgeMenu), nameof(ForgeMenu.CraftItem)),
                 prefix: new HarmonyMethod(typeof(ModEntry), nameof(ModEntry.CraftItem_Prefix))
+            );
+            //public void SpendRightItem ();
+            harmony.Patch(
+                original: AccessTools.Method(typeof(ForgeMenu), nameof(ForgeMenu.SpendRightItem)),
+                prefix: new HarmonyMethod(typeof(ModEntry), nameof(ModEntry.SpendRightItem_Prefix))
             );
             harmony.Patch(
                 original: AccessTools.Method(typeof(ForgeMenu), "_UpdateDescriptionText"),
@@ -216,11 +227,10 @@ namespace BalancedCombineManyRings
 
         }
 
-        public static bool CraftItem_Prefix(ForgeMenu __instance, string  ___displayedDescription, Item left_item, Item right_item, ref Item __result,  bool forReal = false)
+        public static bool CraftItem_Prefix(ForgeMenu __instance, ref ForgeMenu.CraftState ____craftState, string  ___displayedDescription, Item left_item, Item right_item, ref Item __result,  bool forReal = false)
         {
             if (left_item != null && right_item != null)
             {
-
                 if (left_item.getCategoryName().Equals("Ring") && left_item.category == right_item.category)
                 {
                     Ring left_ring = (Ring)left_item;
@@ -236,26 +246,10 @@ namespace BalancedCombineManyRings
                         int instabilityForgeRoll = r.Next(0, 100);
                         if (instabilityForgeRoll < breakChance)
                         {
-                            ModMonitor.Log($"Was instable ({instabilityForgeRoll} of {breakChance}). Will only keep one ring", LogLevel.Trace);
-                            int brokenRingRoll = r.Next(0, total_rings);
-                            __result = right_item;
-
-                            if (total_left_rings >= total_right_rings && brokenRingRoll >= total_left_rings)
-                            {
-                                __result = left_item;
-                            }
-                            else if (total_left_rings < total_right_rings && brokenRingRoll < total_right_rings)
-                            {
-                                __result = left_item;
-                            }
-                            else
-                            {
-
-                                ModMonitor.Log($"keeping the right one", LogLevel.Trace);
-                            }
-                            ModMonitor.Log($"brokenRingRoll: {brokenRingRoll}, {total_left_rings}, {total_right_rings}", LogLevel.Trace);
+                            ModMonitor.Log($"Was unstable ({instabilityForgeRoll} of {breakChance}). Will not forge the result", LogLevel.Trace);
+                            ____craftState = ForgeMenu.CraftState.InvalidRecipe;
+                            __result = left_ring;
                             Game1.playSound("rockGolemDie");
-
                             return false;
                         }
                         else
@@ -271,20 +265,32 @@ namespace BalancedCombineManyRings
             return true;
         }
 
+        public static bool SpendRightItem_Prefix(ref ForgeMenu.CraftState ____craftState)
+        {
+            if (____craftState == ForgeMenu.CraftState.InvalidRecipe)
+            {
+                // return state to the original one, just to avoid messing up anymore than we already are.
+                ____craftState = ForgeMenu.CraftState.Valid;
 
+                ModMonitor.Log($"Was an unstable forge, but wont consume the right item.", LogLevel.Trace);
+                return false;
+            }
+            ModMonitor.Log($"running Original SpendRightItem", LogLevel.Trace);
+            return true;
+
+        }
         public static int GetBreakChance(int total_rings)
         {
-            return Math.Min((total_rings - 2) * 20, 90);  // 0 - 90
+            return Math.Min((total_rings - 2) * DataLoader.ModConfig.FailureChancePerExtraRing, 90);  // 0 - 90
         }
 
         public static int GetTotalCombinedRingsCost(int total_rings)
         {
-            return Math.Min((total_rings - 2) * 100, 999);
+            return Math.Min((total_rings - 2) * DataLoader.ModConfig.CostPerExtraRing, 999);
         }
 
         public static void _UpdateDescriptionText_Postfix(ForgeMenu __instance, ref string ___displayedDescription)
         {
-
             if (__instance.inventory != null && __instance.leftIngredientSpot != null && __instance.rightIngredientSpot != null)
             {
                 Item left_item = __instance.leftIngredientSpot.item;
