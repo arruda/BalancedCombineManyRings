@@ -12,6 +12,9 @@ With the default configurations, this is the expected behaviour of combining mor
 * Combining 12 Rings - cost of 999 Cinder Shards and 90% of change of failing to forge
 
 
+Therefore to be able to get a lvl 4 Combined Ring (4 rings combined into one) the player will need to expend a total of 300 Cinder Shards (100 for 3 rings, and then another 200 for the 4 rings forge), with an overall probability of success of 48% (80% for the 3 ring forge, and then 60% for the 4 ring forge).
+
+
 There are multiple configurations that can be changed to adapt the mod to best suit your own level of challange and fun:
 ## CostPerExtraRing
 How much is the increase in the Cinder Shards cost for each extra ring other than the two initial ones being combined.
@@ -26,9 +29,6 @@ Default value is set to `20`.
 For the players that are looking to a more extreme penalty. On the event of a failure in the forge, one of the rings (mostlikelly the one with a high-number of combined rings) will be destroyed, in addition to consuming the Cinder Shards for the process.
 Default value is set to `false`.
 
-
-
-Therefore to be able to get a lvl 4 Combined Ring (4 rings combined into one) the player will need to expend a total of 300 Cinder Shards (100 for 3 rings, and then another 200 for the 4 rings forge), with an overall probability of success of 48% (80% for the 3 ring forge, and then 60% for the 4 ring forge).
 
 # License
 This Mod follows on the MIT licence as can be seen in the `LICENSE` file listed in with this mod source code.
