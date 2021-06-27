@@ -201,79 +201,138 @@ namespace BalancedCombineManyRings
             }
         }
 
-        //public virtual int GetForgeCost (Item left_item, Item right_item);
         public static void GetForgeCost_Postfix(ForgeMenu __instance, Item left_item, Item right_item, ref int __result)
         {
-            if (left_item != null && right_item != null)
+            try
             {
-                // if merging rings, then calculate different cost based on the total amount of rings being combined
-                // if only two, rings, than keep normal cost of 20, otherwise, gets 100 per ring combined (max of 999)
-                if (left_item.getCategoryName().Equals("Ring") && left_item.category == right_item.category)
+                if (left_item != null && right_item != null)
                 {
-                    Ring left_ring = (Ring)left_item;
-                    Ring right_ring = (Ring)right_item;
-
-                    int total_rings = GetCombinedRingTotal(left_ring) + GetCombinedRingTotal(right_ring);
-                    if (total_rings > 2)
+                    // if merging rings, then calculate different cost based on the total amount of rings being combined
+                    // if only two, rings, than keep normal cost of 20, otherwise, gets 100 per ring combined (max of 999)
+                    if (left_item.getCategoryName().Equals("Ring") && left_item.category == right_item.category)
                     {
-                        int new_cost = GetTotalCombinedRingsCost(total_rings);
-                        __result = new_cost;
+                        Ring left_ring = (Ring)left_item;
+                        Ring right_ring = (Ring)right_item;
+
+                        int total_rings = GetCombinedRingTotal(left_ring) + GetCombinedRingTotal(right_ring);
+                        if (total_rings > 2)
+                        {
+                            int new_cost = GetTotalCombinedRingsCost(total_rings);
+                            __result = new_cost;
+
+                        }
 
                     }
 
                 }
 
+            }
+            catch (Exception ex)
+            {
+                ModMonitor.Log($"Failed in {nameof(GetForgeCost_Postfix)}:\n{ex}", LogLevel.Error);
             }
 
         }
 
+
         public static bool CraftItem_Prefix(ForgeMenu __instance, ref ForgeMenu.CraftState ____craftState, string  ___displayedDescription, Item left_item, Item right_item, ref Item __result,  bool forReal = false)
         {
-            if (left_item != null && right_item != null)
+            try
             {
-                if (left_item.getCategoryName().Equals("Ring") && left_item.category == right_item.category)
+                if (left_item != null && right_item != null)
                 {
-                    Ring left_ring = (Ring)left_item;
-                    Ring right_ring = (Ring)right_item;
-
-                    int total_left_rings = GetCombinedRingTotal(left_ring);
-                    int total_right_rings = GetCombinedRingTotal(right_ring);
-                    int total_rings = total_left_rings + total_right_rings;
-                    if (forReal == true)
+                    if (left_item.getCategoryName().Equals("Ring") && left_item.category == right_item.category)
                     {
-                        int breakChance = GetBreakChance(total_rings);
-                        Random r = new Random();
-                        int instabilityForgeRoll = r.Next(0, 100);
-                        if (instabilityForgeRoll < breakChance)
-                        {
-                            ModMonitor.Log($"Was unstable ({instabilityForgeRoll} of {breakChance}). Will not forge the result", LogLevel.Trace);
-                            ____craftState = ForgeMenu.CraftState.InvalidRecipe;
-                            __result = left_ring;
-                            Game1.playSound("rockGolemDie");
-                            return false;
-                        }
-                        else
-                        {
-                            ModMonitor.Log($"Successfull {instabilityForgeRoll} of {breakChance}! will forge as it should.", LogLevel.Trace);
-                        }
-                    }
+                        Ring left_ring = (Ring)left_item;
+                        Ring right_ring = (Ring)right_item;
 
+                        int total_left_rings = GetCombinedRingTotal(left_ring);
+                        int total_right_rings = GetCombinedRingTotal(right_ring);
+                        int total_rings = total_left_rings + total_right_rings;
+                        if (forReal == true)
+                        {
+                            int breakChance = GetBreakChance(total_rings);
+                            Random r = new Random();
+                            int instabilityForgeRoll = r.Next(0, 100);
+                            if (instabilityForgeRoll < breakChance)
+                            {
+                                ModMonitor.Log($"Was unstable ({instabilityForgeRoll} of {breakChance}). Will not forge the result", LogLevel.Trace);
+
+                                if (DataLoader.ModConfig.DestroyRingOnFailure)
+                                {
+
+                                    int brokenRingRoll = r.Next(0, total_rings);
+                                    bool keepRightItem = true;
+
+                                    if (total_left_rings >= total_right_rings && brokenRingRoll >= total_left_rings)
+                                    {
+                                        keepRightItem = false;
+                                    }
+                                    else if (total_left_rings < total_right_rings && brokenRingRoll < total_right_rings)
+                                    {
+                                        keepRightItem = false;
+                                    }
+                                    if (keepRightItem)
+                                    {
+                                        __result = right_item;
+                                        __instance.leftIngredientSpot.item = right_item;
+                                        __instance.rightIngredientSpot.item = left_item;
+
+                                        ModMonitor.Log($"keeping right ring", LogLevel.Trace);
+                                    }
+                                    else
+                                    {
+                                        __result = left_item;
+                                        ModMonitor.Log($"keeping left ring", LogLevel.Trace);
+                                    }
+                                    ModMonitor.Log($"brokenRingRoll: {brokenRingRoll}, {total_left_rings}, {total_right_rings}", LogLevel.Trace);
+
+                                }
+                                else
+                                {
+                                    __result = left_ring;
+                                    ____craftState = ForgeMenu.CraftState.InvalidRecipe;
+                                }
+                                Game1.playSound("rockGolemDie");
+                                return false;
+                            }
+                            else
+                            {
+                                ModMonitor.Log($"Successfull {instabilityForgeRoll} of {breakChance}! will forge as it should.", LogLevel.Trace);
+                            }
+                        }
+
+                    }
                 }
+
+            }
+            catch (Exception ex)
+            {
+                ModMonitor.Log($"Failed in {nameof(CraftItem_Prefix)}:\n{ex}", LogLevel.Error);
             }
 
-            ModMonitor.Log($"running original...", LogLevel.Trace);
+
+            ModMonitor.Log($"running original", LogLevel.Trace);
             return true;
         }
 
         public static bool SpendRightItem_Prefix(ref ForgeMenu.CraftState ____craftState)
         {
-            if (____craftState == ForgeMenu.CraftState.InvalidRecipe)
+            try
             {
-                // return state to the original one, just to avoid messing up anymore than we already are.
-                ____craftState = ForgeMenu.CraftState.Valid;
+                if (____craftState == ForgeMenu.CraftState.InvalidRecipe)
+                {
+                    // return state to the original one, just to avoid messing up anymore than we already are.
+                    ____craftState = ForgeMenu.CraftState.Valid;
 
-                ModMonitor.Log($"Was an unstable forge, but wont consume the right item.", LogLevel.Trace);
-                return false;
+                    ModMonitor.Log($"Was an unstable forge, but wont consume the right item.", LogLevel.Trace);
+                    return false;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                ModMonitor.Log($"Failed in {nameof(SpendRightItem_Prefix)}:\n{ex}", LogLevel.Error);
             }
             ModMonitor.Log($"running Original SpendRightItem", LogLevel.Trace);
             return true;
@@ -291,36 +350,43 @@ namespace BalancedCombineManyRings
 
         public static void _UpdateDescriptionText_Postfix(ForgeMenu __instance, ref string ___displayedDescription)
         {
-            if (__instance.inventory != null && __instance.leftIngredientSpot != null && __instance.rightIngredientSpot != null)
+            try
             {
-                Item left_item = __instance.leftIngredientSpot.item;
-                Item right_item = __instance.rightIngredientSpot.item;
-
-
-
-                if (left_item != null && right_item != null)
+                if (__instance.inventory != null && __instance.leftIngredientSpot != null && __instance.rightIngredientSpot != null)
                 {
+                    Item left_item = __instance.leftIngredientSpot.item;
+                    Item right_item = __instance.rightIngredientSpot.item;
 
-                    if (left_item.getCategoryName().Equals("Ring") && left_item.category == right_item.category)
+
+
+                    if (left_item != null && right_item != null)
                     {
-                        Ring left_ring = (Ring)left_item;
-                        Ring right_ring = (Ring)right_item;
 
-                        int total_left_rings = GetCombinedRingTotal(left_ring);
-                        int total_right_rings = GetCombinedRingTotal(right_ring);
-                        int total_rings = total_left_rings + total_right_rings;
-                        int cost = GetTotalCombinedRingsCost(total_rings);
-                        if (total_rings > 2)
+                        if (left_item.getCategoryName().Equals("Ring") && left_item.category == right_item.category)
                         {
-                            ___displayedDescription += $"\nCost: {cost}";
+                            Ring left_ring = (Ring)left_item;
+                            Ring right_ring = (Ring)right_item;
+
+                            int total_left_rings = GetCombinedRingTotal(left_ring);
+                            int total_right_rings = GetCombinedRingTotal(right_ring);
+                            int total_rings = total_left_rings + total_right_rings;
+                            int cost = GetTotalCombinedRingsCost(total_rings);
+                            if (total_rings > 2)
+                            {
+                                ___displayedDescription += $"\nCost: {cost}";
+                            }
+                            int sucess_rate = 100 - GetBreakChance(total_rings);
+                            ___displayedDescription += $"\nChance of sucess: {sucess_rate}%";
+
                         }
-                        int sucess_rate=  100 - GetBreakChance(total_rings);  
-                        ___displayedDescription += $"\nChance of sucess: {sucess_rate}%";
-
                     }
+
+
                 }
-
-
+            }
+            catch (Exception ex)
+            {
+                ModMonitor.Log($"Failed in {nameof(_UpdateDescriptionText_Postfix)}:\n{ex}", LogLevel.Error);
             }
 
         }

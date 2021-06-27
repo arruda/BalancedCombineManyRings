@@ -1,7 +1,7 @@
 ﻿{
   "Name": "BalancedCombineManyRings",
   "Author": "Arruda",
-  "Version": "1.0.2",
+  "Version": "1.1.0",
   "Description": "Allows you to combine already combined rings in a balanced way, since it gets more expensive and harder to combine the more rings you merge together.",
   "UniqueID": "Arruda.BalancedCombineManyRings",
   "EntryDll": "BalancedCombineManyRings.dll",
